@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ASCII Map Navigation</title>
+  <style>
+    body {
+      background: black;
+      color: lime;
+      font-family: monospace;
+      white-space: pre;
+      margin: 0;
+      padding: 20px;
+      cursor: crosshair;
+    }
+    #map {
+      line-height: 1.2;
+    }
+  </style>
+</head>
+<body>
+<pre id="map"></pre>
+
+<script>
+  const maps = {
+    village: `
+                                        
+                                        
+      _       _      ___     ___        
+     / \\     / \\    |   |   |   |       
+    /___\\   /___\\   |___|   |___|       
+    | H |   | H |   | H |   | H |       
+    |___|   |___|   |___|   |___|       
+                   D                    
+                                        
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~      -->  
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+`,
+    house: `
+   _______________________
+  |                       |
+  |   Welcome inside!     |
+  |   [ You are safe ]    |
+  |_______________________|
+`
+  };
+
+  let currentMap = 'village';
+  const mapEl = document.getElementById('map');
+
+  function drawMap() {
+    mapEl.textContent = maps[currentMap].trim();
+  }
+
+  function getCursorCoords(e) {
+    const rect = mapEl.getBoundingClientRect();
+    const x = Math.floor((e.clientX - rect.left) / 8); // Approx char width
+    const y = Math.floor((e.clientY - rect.top) / 18); // Approx line height
+    return { x, y };
+  }
+
+  mapEl.addEventListener('click', (e) => {
+    const { x, y } = getCursorCoords(e);
+    console.log(`Clicked at: x=${x}, y=${y}`);
+
+    if (currentMap === 'village') {
+      // Adjust based on real position of "D" in your map!
+      if (x >= 19 && x <= 21 && y === 7) {
+        currentMap = 'house';
+        drawMap();
+      }
+    }
+  });
+
+  drawMap();
+</script>
+</body>
+</html>

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ASCII Map Game</title>
+  <style>
+    body { font-family: monospace; }
+    pre { line-height: 1.2; user-select: none; }
+    .clickable { color: orange; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <pre id="menu">
+  </pre>
+
+<div id="page-game" class="page">Welcome to the game!</div>
+<div id="page-stats" class="page" style="display:none">Stats page</div>
+<div id="page-inventory" class="page" style="display:none">Inventory contents</div>
+<div id="page-achievements" class="page" style="display:none">Achievements go here</div>
+<div id="page-settings" class="page" style="display:none">Settings and preferences</div>
+
+
+<div id="startPage" style="position:fixed; top:0; left:0; 
+  width:100%; height:100%; background:#222; color:#eee; 
+  display:flex; align-items:center; justify-content:center; font-size:2em; font-family: monospace; z-index: 9999;">
+  Welcome to another candy box sequel game!! 
+  <br>Made by Irwin <br>Loading...
+</div>
+
+<div id="gameUI" style="display:none;">
+  <!-- Your entire game UI: map, inventory, buttons, etc. goes inside here -->
+  <!-- For example, your map, inventory, achievements button, etc. -->
+</div>
+
+
+<pre id="healthBar"></pre>
+
+
+<h2 id="map-title">Outside World</h2>
+
+
+<!-- Button (initially hidden) -->
+<button id="specialButton" style="display: none; margin-top: 10px;">Invest 10% of your lollipops</button>
+<button id="specialButton2" style="display: none; margin-top: 10px;">Invest all lollipops</button>
+
+
+
+<pre id="map"></pre>
+<p id="inventory">Candy: 0</p>
+
+<button id="eatCandyBtn">Eat 10% of your candy</button>
+<button id="eatCandyBtn2">Eat All candy</button>
+
+<button id="toggleAchievementsBtn">Show Achievements</button>
+<div id="achievements" style="display:none; border:1px solid; padding:10px; max-width:300px; font-family: monospace; white-space: pre-wrap;"></div>
+
+<pre id="map" style="font-family: monospace; line-height: 1.2; user-select: none; cursor: default;"></pre>
+<div id="coords">Hover over map to see coordinates, rememer to remove this in a later version!!</div>
+
+<!-- Order matters! -->
+<script src="items.js"></script>
+<script src="maps.js"></script> 
+<script src="battle.js"></script>
+<script src="currencies.js"></script>
+<script src="achievements.js"></script>
+<script src="coordinates.js"></script>
+<script src="navigation.js"></script>
+<script src="enemies.js"></script>
+
+<script>
+
+let currentMap = 'beginnersVillage';
+const mapEl = document.getElementById('map');
+let map = loadMapHouse2.map(line => [...line]);
+
+updateHealthBar();
+
+  const menuHTML = `
++-----------------------------------MENU-----------------------------------+
+|              |              |              |              |              |
+| <span class="menu-item" onclick="showPage('game')">   game     </span> | <span class="menu-item" onclick="showPage('stats')">   stats    </span> | <span class="menu-item" onclick="showPage('inventory')"> inventory  </span> | <span class="menu-item" onclick="showPage('achievements')">achievements</span> | <span class="menu-item" onclick="showPage('settings')">  settings   </span>|
+|              |              |              |              |              |
++--------------------------------------------------------------------------+
+`;
+document.getElementById('menu').innerHTML = menuHTML;
+
+
+  function drawMap() {
+
+  map = loadMap(currentMap);
+  checkItems(currentMap); 
+  }
+
+  function getCursorCoords(e) {
+    const rect = mapEl.getBoundingClientRect();
+    const x = Math.floor((e.clientX - rect.left) / 8); // estimate character width
+    const y = Math.floor((e.clientY - rect.top) / 18); // estimate line height
+    return { x, y };
+  }
+
+  mapEl.addEventListener('click', (e) => {
+    const { x, y } = getCursorCoords(e);
+    console.log(`Clicked at: ${x}, ${y}`);
+
+    changeMap(x,y);
+  });
+
+
+
+  function drawMapWithEnemy() {
+    if (battleActive){
+    //Deep copy of the map
+    let map = loadMapHouse2.map(line => [...line]);
+    if (enemy.hp > 0){    
+
+    const enemyHealthPercentage = enemy.hp / enemy.maxHp;
+
+  // Choose color based on health %
+  let color;
+  if (enemyHealthPercentage > 0.7) {
+    color = 'green';
+  } else if (enemyHealthPercentage > 0.3) {
+    color = 'orange';
+  } else {
+    color = 'red';
+  }
+  // Create a simple bar using '█' for health and ' ' for missing health
+  //document.getElementById("healthBar").style.color = 'blue';
+  //const filled = `<span style="color:${color}">█</span>`.repeat(health/maxHealth*healthBars);
+
+
+    // Draw enemy health bar
+    const healthY = enemy.y - 1;
+    const healthWidth = enemySprite[0].length;
+    const filled = Math.round((enemy.hp / enemy.maxHp) * healthWidth);
+
+    const healthBar =  `<span class="${color}">[` +
+         '█'.repeat(filled) + 
+         ' '.repeat(healthWidth - filled) +
+         `]</span>`;
+
+    //const healthBar = '[' + '█'.repeat(filled) + ' '.repeat(healthWidth - filled) + ']';
+
+    //if (healthY >= 0) {
+    //  for (let i = 0; i < healthBar.length; i++) {
+    //    const x = enemy.x + i;
+    //    if (x < mapHouse2Width) map[healthY][x] = healthBar[i];
+    //  }
+    //}
+
+    // Draw enemy sprite 
+    for (let row = 0; row < enemySprite.length; row++) {
+      const spriteLine = enemySprite[row];
+      const mapY = enemy.y + row;
+      if (mapY < mapHouse2Height) {
+        for (let col = 0; col < spriteLine.length; col++) {
+          const mapX = enemy.x + col;
+          if (mapX < mapHouse2Width) map[mapY][mapX] = spriteLine[col];
+        }
+      }
+    }
+    //enemyM movement
+    if (enemy.x > 0 && enemy.x > player.x) {
+      enemy.x--;
+     }
+    }
+    else if (enemy.hp <= 0){
+      //draw victory on screen
+      battleWin = true;
+      messageScreen(40,1,'You collected ' + enemy.candies + ' candies so far');
+    }
+      messageScreen(1,1,"test");
+
+    //draw player movement
+    for (let row = 0; row < playerSprite.length; row++) {
+      const spriteLine = playerSprite[row];
+      const mapY = player.y + row;
+      if (mapY < mapHouse2Height) {
+        for (let col = 0; col < spriteLine.length; col++) {
+          const mapX = player.x + col;
+          if (mapX < mapHouse2Width) map[mapY][mapX] = spriteLine[col];
+        }
+      }
+    }
+    if (player.x < mapHouse2Width - 5 && (player.x < enemy.x || enemy.hp <= 0)) {
+      player.x++;
+    }
+
+    else if (player.x === enemy.x) {
+      ///attack
+      enemy.hp -= player.attack
+      health -= enemy.attack
+    }
+    
+    console.log(player.x);
+    console.log(enemy.x);
+    console.log(enemy.hp);
+
+    // Display the result
+    const display = map.map(line => line.join('')).join('\n');
+    document.getElementById('map').innerHTML = display;
+    }
+
+  }
+
+function refresh(){
+  getCandy();
+  getHealth();
+  getLollipops();
+  updateHealthBar();
+  updateInventory();
+  checkAchievements();
+
+  const btn = document.getElementById('specialButton');
+  const btn2 = document.getElementById('specialButton2');
+  btn.style.display = (currentMap === 'lollipopFarm') ? 'inline-block' : 'none';
+  btn2.style.display = (currentMap === 'lollipopFarm') ? 'inline-block' : 'none';
+}
+
+
+function updateInventory() {
+  let text =  `Candy: ${candies} | Collected candy generators: ${candyGenerator} | Cps: ${candyGenerator} | Candy eaten: ${candyEaten}`;
+
+if (lollipopsUnlocked) {
+  text += ` <br> Lollipops: ${lollipops} | Collected farms ${farms} | Refresh rate farms ${farmsRefreshRate} | farmsMultiplier ${farmsMultiplier} | lollipops eaten: 0`;
+  }
+document.getElementById('inventory').innerHTML = text;
+}
+
+window.onload = () => {
+    // Show start page for 3 seconds, then hide it and show game UI
+  setTimeout(() => {
+    document.getElementById('startPage').style.display = 'none';
+    document.getElementById('gameUI').style.display = 'block';
+  }, 200);
+  
+  loadGame();
+  drawMap(); 
+
+  //setInterval(drawMap,1000);
+  setInterval(drawMapWithEnemy,200);
+  setInterval(refresh, 1000); // One per second
+  setInterval(saveGame, 3000); //3 seconds
+};
+
+  function saveGame() {
+    localStorage.setItem("candies", candies);
+  }
+
+  function loadGame() {
+    const saved = localStorage.getItem("candies");
+    if (saved !== null) {
+      candies = parseInt(saved);
+      updateInventory();
+      //alert("Game loaded!");
+    } 
+  }
+
+  function showPage(pageName) {
+    const pages = document.querySelectorAll('.page');
+    pages.forEach(page => page.style.display = 'none');
+
+    const target = document.getElementById(`page-${pageName}`);
+    if (target) {
+      target.style.display = 'block';
+    }
+  }
+
+
+</script>
+</body>
+</html>
